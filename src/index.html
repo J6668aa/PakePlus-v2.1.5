@@ -1,32 +1,1312 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <link rel="stylesheet" href="styles.css" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PakePlus App</title>
-        <script type="module" src="/main.js" defer></script>
-    </head>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>美甲工作室预约系统</title>
+    <style>
+        :root {
+            --primary-color: #FFD1DC; /* 粉色系 */
+            --primary-dark: #FF9EB5;
+            --primary-btn: #FF6B95;
+            --accent-color: #D4A5A5; 
+            --bg-color: #F8F9FA;
+            --text-color: #333;
+            --white: #ffffff;
+            --border-radius: 12px;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+            
+            /* Button Colors */
+            --btn-start: #4CAF50; /* Green */
+            --btn-end: #2196F3; /* Blue */
+            --btn-cancel: #F44336; /* Red */
+        }
 
-    <body>
-        <main class="container">
-            <h1>Welcome to PakePlus</h1>
-            <form class="row" id="greet-form">
-                <input id="inputValue" placeholder="Enter a something..." />
-            </form>
-            <div class="resultBox">
-                <span>result: </span>
-                <span id="result"></span>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Prevent body scroll, handle in main */
+        }
+
+        /* Header Styles */
+        header {
+            background-color: var(--white);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow);
+            position: relative;
+            z-index: 10;
+            flex-shrink: 0;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .date-display {
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .date-display:hover {
+            background: #f5f5f5;
+        }
+
+        .current-date {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .current-weekday {
+            font-size: 14px;
+            color: #888;
+        }
+
+        .nav-btn {
+            background: #f0f0f0;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: #555;
+            transition: all 0.2s;
+        }
+
+        .nav-btn:hover {
+            background: #e0e0e0;
+            transform: scale(1.1);
+        }
+
+        /* Quick Add Button */
+        .quick-add-btn {
+            background: linear-gradient(135deg, #FF6B95 0%, #FF8FA3 100%);
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 24px;
+            font-weight: bold;
+            font-size: 15px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 107, 149, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .quick-add-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 149, 0.6);
+        }
+
+        /* Day View Styles */
+        main {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .timeline-container {
+            position: relative;
+            min-height: 100%;
+            padding-left: 60px; /* Space for time labels */
+            padding-bottom: 50px;
+        }
+
+        .time-marker {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            border-top: 1px dashed #e0e0e0;
+            height: 60px; /* 1 hour height = 60px (1px per min) */
+            box-sizing: border-box;
+        }
+        
+        .time-label {
+            position: absolute;
+            left: -55px;
+            top: -10px;
+            font-size: 12px;
+            color: #888;
+            width: 50px;
+            text-align: right;
+        }
+
+        .timeline-now-indicator {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            border-top: 2px solid var(--primary-btn);
+            z-index: 5;
+            pointer-events: none;
+        }
+        
+        .timeline-now-indicator::before {
+            content: '';
+            position: absolute;
+            left: -6px;
+            top: -5px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--primary-btn);
+        }
+
+        /* Appointment Card in Timeline */
+        .appt-card {
+            position: absolute;
+            left: 10px;
+            right: 10px;
+            background: #FFF0F5;
+            border-left: 4px solid #E91E63;
+            border-radius: 6px;
+            padding: 8px;
+            font-size: 13px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            cursor: pointer;
+            overflow: hidden;
+            transition: transform 0.1s, z-index 0.1s, box-shadow 0.1s;
+            z-index: 1;
+        }
+        
+        .appt-card:hover {
+            z-index: 10;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            transform: scale(1.01);
+        }
+
+        .appt-card.started {
+            background-color: #E8F5E9;
+            border-left-color: #4CAF50;
+        }
+
+        .appt-card.completed {
+            background-color: #F5F5F5;
+            border-left-color: #9E9E9E;
+            opacity: 0.8;
+            /* text-decoration: line-through; optional */
+        }
+        
+        .appt-card.visual-alert {
+             animation: flash 1s infinite;
+        }
+        
+        .appt-time {
+            font-weight: bold;
+            font-size: 12px;
+            margin-bottom: 2px;
+        }
+        
+        .appt-title {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .appt-subtitle {
+            font-size: 12px;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .modal {
+            background: var(--white);
+            padding: 24px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #888;
+            padding: 0 8px;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .input-group .form-input {
+            flex: 1;
+        }
+
+        /* Buttons */
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 10px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-btn);
+            color: white;
+            box-shadow: 0 4px 10px rgba(255, 107, 149, 0.3);
+        }
+        
+        .btn-start {
+            background-color: var(--btn-start);
+            color: white;
+        }
+        
+        .btn-end {
+            background-color: var(--btn-end);
+            color: white;
+        }
+        
+        .btn-danger {
+            background-color: var(--btn-cancel);
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+            width: auto;
+            margin-top: 0;
+        }
+        
+        .btn-icon {
+            padding: 8px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #eee;
+            border-radius: 8px;
+            color: #555;
+            cursor: pointer;
+            border: none;
+        }
+        
+        /* Service Management List */
+        .service-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .service-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            background: #fff;
+        }
+        
+        .service-item.editing {
+            background: #f9f9f9;
+        }
+        
+        .service-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .service-actions {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .action-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 4px;
+            color: #666;
+            border-radius: 4px;
+        }
+        
+        .action-btn:hover {
+            background-color: #eee;
+        }
+
+        .service-edit-form {
+            display: flex;
+            gap: 5px;
+            flex: 1;
+            margin-right: 5px;
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 24px;
+            font-size: 14px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            z-index: 200;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+        
+        @keyframes flash {
+            0% { background-color: #FFF0F5; }
+            50% { background-color: #ffcccb; }
+            100% { background-color: #FFF0F5; }
+        }
+
+        /* Mobile Optimization */
+        @media (max-width: 600px) {
+            header {
+                padding: 10px 12px;
+            }
+            .header-left {
+                gap: 8px;
+            }
+            .current-date {
+                font-size: 16px;
+            }
+            .current-weekday {
+                font-size: 12px;
+            }
+            .quick-add-btn {
+                padding: 8px 14px;
+                font-size: 14px;
+            }
+            .timeline-container {
+                padding-left: 50px;
+            }
+            .time-label {
+                left: -48px;
+                width: 45px;
+                font-size: 11px;
+            }
+            .nav-btn {
+                width: 32px;
+                height: 32px;
+                font-size: 16px;
+            }
+            .appt-card {
+                padding: 6px;
+                border-left-width: 3px;
+                left: 5px;
+                right: 5px;
+            }
+            .appt-time {
+                font-size: 11px;
+            }
+            .appt-title {
+                font-size: 13px;
+            }
+            .appt-subtitle {
+                font-size: 11px;
+            }
+            .modal {
+                padding: 20px;
+                width: 95%;
+            }
+            /* Adjust timeline hour height slightly for mobile if needed, 
+               but 80px is good for touch precision. Keeping it same. */
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-left">
+            <button class="nav-btn" id="prevDayBtn">&lt;</button>
+            <div class="date-display" id="dateDisplayArea" title="点击选择日期">
+                <div class="current-date" id="currentDateDisplay">2026年 1月 21日</div>
+                <div class="current-weekday" id="currentWeekdayDisplay">周三</div>
+                <input type="date" id="headerDatePicker" style="position: absolute; opacity: 0; width: 0; height: 0;">
             </div>
-            <div class="invokeBox">
-                <button id="openUrl">open_url_browser</button>
-                <button id="openUrlNew">open_url_new</button>
-                <button id="runCommand">run_command</button>
-                <button id="downloadFile">download_file</button>
-                <button id="getExeDir">get_exe_dir</button>
-                <button id="getEnvVar">get_env_var</button>
-                <button id="findPort">find_port</button>
+            <button class="nav-btn" id="nextDayBtn">&gt;</button>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button class="nav-btn" id="settingsBtn" title="设置" onclick="openSettingsModal()">
+                ⚙️
+            </button>
+            <button class="quick-add-btn" id="quickAddBtn">
+                <span>+</span> 预约
+            </button>
+        </div>
+    </header>
+
+    <main id="mainContainer">
+        <!-- Timeline generated by JS -->
+        <div class="timeline-container" id="timelineContainer">
+            <!-- Time Markers -->
+            <!-- Appointments -->
+        </div>
+    </main>
+
+    <!-- Create Appointment Modal -->
+    <div class="modal-overlay" id="createModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">新增预约</div>
+                <button class="close-btn" onclick="closeModal('createModal')">&times;</button>
             </div>
-        </main>
-    </body>
+            
+            <div class="form-group">
+                <label class="form-label">日期</label>
+                <input type="date" class="form-input" id="apptDate">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">美甲项目</label>
+                <div class="input-group">
+                    <select class="form-select" id="serviceType" onchange="calculateEndTime()">
+                        <!-- Populated by JS -->
+                    </select>
+                    <button class="btn-icon" title="管理项目" onclick="openServiceModal()">
+                        ⚙️
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">开始时间</label>
+                <div class="input-group">
+                    <input type="time" class="form-input" id="startTime" list="timeOptions" onchange="calculateEndTime()">
+                    <datalist id="timeOptions">
+                        <!-- Options populated by JS or static -->
+                    </datalist>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">预计结束时间</label>
+                <input type="time" class="form-input" id="endTime" readonly style="background-color: #f5f5f5; color: #666;">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">客户姓名</label>
+                <input type="text" class="form-input" id="customerName" placeholder="请输入姓名">
+            </div>
+            <div class="form-group">
+                <label class="form-label">联系电话</label>
+                <input type="tel" class="form-input" id="customerPhone" placeholder="请输入手机号">
+            </div>
+            
+            <button class="btn btn-primary" onclick="saveAppointment()">确认预约</button>
+        </div>
+    </div>
+
+    <!-- Service Management Modal -->
+    <div class="modal-overlay" id="serviceModal" style="z-index: 101;">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">项目管理</div>
+                <button class="close-btn" onclick="closeModal('serviceModal')">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">新增项目</label>
+                <div class="input-group" style="margin-bottom: 8px;">
+                    <input type="text" class="form-input" id="newServiceName" placeholder="项目名称">
+                    <input type="number" class="form-input" id="newServiceDuration" placeholder="分钟" style="flex: 0 0 80px;">
+                </div>
+                <button class="btn btn-sm btn-primary" onclick="addService()">添加</button>
+            </div>
+
+            <label class="form-label">项目列表 (可拖拽排序不可用，请使用箭头)</label>
+            <div class="service-list" id="serviceList">
+                <!-- JS Populated -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal" style="z-index: 102;">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">系统设置</div>
+                <button class="close-btn" onclick="closeModal('settingsModal')">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">语音提醒设置</label>
+                <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                    <input type="checkbox" id="reminderEnabled" style="margin-right: 8px; width: 20px; height: 20px;">
+                    <label for="reminderEnabled">启用语音提醒</label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">提前提醒时间 (分钟)</label>
+                <input type="number" class="form-input" id="reminderMinutes" min="1" max="60" value="5">
+                <div style="font-size: 12px; color: #888; margin-top: 5px;">预约开始前多少分钟播放提醒</div>
+            </div>
+
+            <button class="btn btn-primary" onclick="saveSettings()">保存设置</button>
+            <button class="btn btn-sm" style="background:#eee; color:#333; margin-top:10px;" onclick="testVoice()">测试语音</button>
+        </div>
+    </div>
+
+    <!-- View Appointment Modal -->
+    <div class="modal-overlay" id="viewModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">预约详情</div>
+                <button class="close-btn" onclick="closeModal('viewModal')">&times;</button>
+            </div>
+            <div id="apptDetailsContent">
+                <!-- Content populated by JS -->
+            </div>
+            <div id="apptActions">
+                <!-- Buttons populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">操作成功</div>
+
+    <script>
+        // --- State Management ---
+        let currentDate = new Date();
+        let appointments = [];
+        let services = [];
+        let settings = {
+            reminderEnabled: true,
+            reminderMinutes: 5
+        };
+        const APPT_STORAGE_KEY = 'nail_salon_appointments';
+        const SVC_STORAGE_KEY = 'nail_salon_services';
+        const SETTINGS_STORAGE_KEY = 'nail_salon_settings';
+        let editingServiceId = null;
+        
+        // Configuration
+        const START_HOUR = 0;
+        const END_HOUR = 24;
+        const PIXELS_PER_HOUR = 80; // Height of one hour block
+
+        // Default Services
+        const DEFAULT_SERVICES = [
+            { id: '1', name: '纯色美甲', duration: 60 },
+            { id: '2', name: '法式美甲', duration: 90 },
+            { id: '3', name: '跳色美甲', duration: 75 },
+            { id: '4', name: '猫眼美甲', duration: 75 },
+            { id: '5', name: '彩绘美甲', duration: 120 },
+            { id: '6', name: '贴钻美甲', duration: 120 },
+            { id: '7', name: '卸甲护理', duration: 45 }
+        ];
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+            initTimeOptions();
+            renderTimeline();
+            setupEventListeners();
+            
+            // Start reminder check loop
+            setInterval(checkReminders, 30000); 
+            
+            // Scroll to current time or 10:00
+            scrollToTime();
+        });
+
+        function loadData() {
+            const storedAppts = localStorage.getItem(APPT_STORAGE_KEY);
+            if (storedAppts) {
+                appointments = JSON.parse(storedAppts);
+            }
+
+            const storedSvcs = localStorage.getItem(SVC_STORAGE_KEY);
+            if (storedSvcs) {
+                services = JSON.parse(storedSvcs);
+            } else {
+                services = JSON.parse(JSON.stringify(DEFAULT_SERVICES));
+                saveServices();
+            }
+
+            const storedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
+            if (storedSettings) {
+                settings = JSON.parse(storedSettings);
+            }
+        }
+
+        function saveAppointments() {
+            localStorage.setItem(APPT_STORAGE_KEY, JSON.stringify(appointments));
+        }
+
+        function saveServices() {
+            localStorage.setItem(SVC_STORAGE_KEY, JSON.stringify(services));
+        }
+        
+        function initTimeOptions() {
+            const datalist = document.getElementById('timeOptions');
+            datalist.innerHTML = '';
+            for(let h=0; h<24; h++) {
+                datalist.innerHTML += `<option value="${h.toString().padStart(2,'0')}:00">`;
+                datalist.innerHTML += `<option value="${h.toString().padStart(2,'0')}:30">`;
+            }
+        }
+
+        // --- View Logic (Daily Timeline) ---
+        const timelineContainer = document.getElementById('timelineContainer');
+        const currentDateDisplay = document.getElementById('currentDateDisplay');
+        const currentWeekdayDisplay = document.getElementById('currentWeekdayDisplay');
+
+        function renderTimeline() {
+            timelineContainer.innerHTML = '';
+            
+            // Update Header
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth() + 1;
+            const day = currentDate.getDate();
+            const weekday = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][currentDate.getDay()];
+            
+            currentDateDisplay.textContent = `${year}年 ${month}月 ${day}日`;
+            currentWeekdayDisplay.textContent = weekday;
+            
+            // Render Background Grid
+            for (let h = START_HOUR; h <= END_HOUR; h++) {
+                const marker = document.createElement('div');
+                marker.className = 'time-marker';
+                marker.style.top = `${(h - START_HOUR) * PIXELS_PER_HOUR}px`;
+                marker.style.height = `${PIXELS_PER_HOUR}px`;
+                
+                const label = document.createElement('div');
+                label.className = 'time-label';
+                label.textContent = `${h.toString().padStart(2, '0')}:00`;
+                
+                marker.appendChild(label);
+                
+                // Add click to create at this time
+                marker.addEventListener('click', (e) => {
+                    // Avoid triggering when clicking existing appt
+                    if (e.target === marker || e.target === label) {
+                         const clickedTime = new Date(currentDate);
+                         clickedTime.setHours(h);
+                         clickedTime.setMinutes(0);
+                         openCreateModal(clickedTime);
+                    }
+                });
+                
+                timelineContainer.appendChild(marker);
+            }
+            
+            // Set Container Height
+            timelineContainer.style.height = `${(END_HOUR - START_HOUR + 1) * PIXELS_PER_HOUR}px`;
+
+            // Render Current Time Indicator if today
+            const now = new Date();
+            if (isSameDay(now, currentDate)) {
+                const currentH = now.getHours();
+                const currentM = now.getMinutes();
+                if (currentH >= START_HOUR && currentH <= END_HOUR) {
+                    const top = ((currentH - START_HOUR) * 60 + currentM) * (PIXELS_PER_HOUR / 60);
+                    const indicator = document.createElement('div');
+                    indicator.className = 'timeline-now-indicator';
+                    indicator.style.top = `${top}px`;
+                    timelineContainer.appendChild(indicator);
+                }
+            }
+
+            // Render Appointments
+            const currentDayStr = formatDateString(currentDate);
+            const dayAppts = appointments.filter(a => a.date === currentDayStr);
+            
+            // Simple conflict handling: overlapping items get indented or width adjusted
+            // For MVP, we will just stack them with z-index or slight offset if needed.
+            // Let's just place them absolute.
+            
+            dayAppts.forEach(appt => {
+                const [startH, startM] = appt.startTime.split(':').map(Number);
+                const [endH, endM] = appt.endTime.split(':').map(Number);
+                
+                const startMinutes = (startH - START_HOUR) * 60 + startM;
+                const endMinutes = (endH - START_HOUR) * 60 + endM;
+                const duration = endMinutes - startMinutes;
+                
+                const top = startMinutes * (PIXELS_PER_HOUR / 60);
+                const height = duration * (PIXELS_PER_HOUR / 60);
+                
+                const card = document.createElement('div');
+                card.className = `appt-card ${appt.status}`;
+                card.dataset.id = appt.id;
+                card.style.top = `${top}px`;
+                card.style.height = `${Math.max(height, 30)}px`; // Min height for visibility
+                
+                card.innerHTML = `
+                    <div class="appt-time">${appt.startTime} - ${appt.endTime}</div>
+                    <div class="appt-title">${appt.customerName}</div>
+                    <div class="appt-subtitle">${appt.service}</div>
+                `;
+                
+                card.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    openViewModal(appt);
+                });
+                
+                timelineContainer.appendChild(card);
+            });
+        }
+        
+        function scrollToTime() {
+            const now = new Date();
+            let hour = 9;
+            if (isSameDay(now, currentDate)) {
+                hour = now.getHours();
+            }
+            // Clamp
+            hour = Math.max(START_HOUR, Math.min(hour, END_HOUR));
+            const scrollY = (hour - START_HOUR) * PIXELS_PER_HOUR - 50; // Offset a bit
+            document.getElementById('mainContainer').scrollTop = Math.max(0, scrollY);
+        }
+
+        // --- Modals & Forms ---
+        const createModal = document.getElementById('createModal');
+        const viewModal = document.getElementById('viewModal');
+        const serviceModal = document.getElementById('serviceModal');
+        const headerDatePicker = document.getElementById('headerDatePicker');
+        const dateDisplayArea = document.getElementById('dateDisplayArea');
+
+        function setupEventListeners() {
+            document.getElementById('prevDayBtn').addEventListener('click', () => {
+                currentDate.setDate(currentDate.getDate() - 1);
+                renderTimeline();
+            });
+
+            document.getElementById('nextDayBtn').addEventListener('click', () => {
+                currentDate.setDate(currentDate.getDate() + 1);
+                renderTimeline();
+            });
+
+            // Date Picker Logic
+            dateDisplayArea.addEventListener('click', () => {
+                // Set the date picker value to current displayed date
+                headerDatePicker.value = formatDateString(currentDate);
+                
+                // Try to show picker
+                try {
+                    headerDatePicker.showPicker();
+                } catch (e) {
+                    headerDatePicker.focus();
+                    headerDatePicker.click();
+                }
+            });
+
+            headerDatePicker.addEventListener('change', (e) => {
+                if (e.target.value) {
+                    const parts = e.target.value.split('-');
+                    currentDate = new Date(parts[0], parts[1] - 1, parts[2]);
+                    renderTimeline();
+                }
+            });
+
+            document.getElementById('quickAddBtn').addEventListener('click', () => {
+                // Default to now or next slot
+                const now = new Date();
+                // If viewing another day, use that day at 10:00
+                if (!isSameDay(now, currentDate)) {
+                    const d = new Date(currentDate);
+                    d.setHours(10, 0);
+                    openCreateModal(d);
+                } else {
+                    openCreateModal(now);
+                }
+            });
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        function openCreateModal(dateObj) {
+            document.getElementById('apptDate').value = formatDateString(dateObj);
+            document.getElementById('customerName').value = '';
+            document.getElementById('customerPhone').value = '';
+            
+            // Round time to nearest 30 mins
+            let h = dateObj.getHours();
+            let m = dateObj.getMinutes();
+            if (m < 15) m = 0;
+            else if (m < 45) m = 30;
+            else { m = 0; h++; }
+            
+            const timeStr = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+            document.getElementById('startTime').value = timeStr;
+            document.getElementById('endTime').value = '';
+            
+            renderServiceSelect();
+            calculateEndTime(); 
+            
+            createModal.style.display = 'flex';
+        }
+
+        function renderServiceSelect() {
+            const select = document.getElementById('serviceType');
+            select.innerHTML = '';
+            services.forEach(svc => {
+                const option = document.createElement('option');
+                option.value = svc.name;
+                option.dataset.duration = svc.duration;
+                option.textContent = `${svc.name} (${svc.duration}分钟)`;
+                select.appendChild(option);
+            });
+        }
+
+        function calculateEndTime() {
+            const startTime = document.getElementById('startTime').value;
+            const select = document.getElementById('serviceType');
+            
+            if (!startTime || select.selectedIndex === -1) return;
+            
+            const duration = parseInt(select.options[select.selectedIndex].dataset.duration) || 60;
+            const [h, m] = startTime.split(':').map(Number);
+            
+            const startDate = new Date();
+            startDate.setHours(h);
+            startDate.setMinutes(m);
+            
+            const endDate = new Date(startDate.getTime() + duration * 60000);
+            const endH = endDate.getHours().toString().padStart(2, '0');
+            const endM = endDate.getMinutes().toString().padStart(2, '0');
+            
+            document.getElementById('endTime').value = `${endH}:${endM}`;
+        }
+
+        function saveAppointment() {
+            const date = document.getElementById('apptDate').value;
+            const startTime = document.getElementById('startTime').value;
+            const endTime = document.getElementById('endTime').value;
+            const name = document.getElementById('customerName').value;
+            const phone = document.getElementById('customerPhone').value;
+            const serviceSelect = document.getElementById('serviceType');
+            const service = serviceSelect.value;
+            const duration = serviceSelect.options[serviceSelect.selectedIndex].dataset.duration;
+
+            if (!date || !startTime || !name) {
+                showToast('请填写完整信息');
+                return;
+            }
+
+            const newAppt = {
+                id: Date.now().toString(),
+                date,
+                startTime,
+                endTime,
+                duration,
+                customerName: name,
+                customerPhone: phone,
+                service,
+                status: 'pending'
+            };
+
+            appointments.push(newAppt);
+            saveAppointments();
+            closeModal('createModal');
+            renderTimeline();
+            showToast('预约已创建');
+        }
+
+        // --- Service Management (Enhanced) ---
+        function openServiceModal() {
+            renderServiceList();
+            serviceModal.style.display = 'flex';
+        }
+
+        function renderServiceList() {
+            const list = document.getElementById('serviceList');
+            list.innerHTML = '';
+            
+            services.forEach((svc, index) => {
+                const item = document.createElement('div');
+                item.className = 'service-item';
+                if (editingServiceId === svc.id) {
+                    item.classList.add('editing');
+                    item.innerHTML = `
+                        <div class="service-edit-form">
+                            <input type="text" class="form-input" id="editName-${svc.id}" value="${svc.name}" style="flex:2">
+                            <input type="number" class="form-input" id="editDuration-${svc.id}" value="${svc.duration}" style="flex:1">
+                        </div>
+                        <div class="service-actions">
+                            <button class="action-btn" onclick="saveServiceEdit('${svc.id}', ${index})" style="color:green">✔</button>
+                            <button class="action-btn" onclick="cancelServiceEdit()" style="color:gray">✖</button>
+                        </div>
+                    `;
+                } else {
+                    item.innerHTML = `
+                        <div class="service-info">
+                            <span class="service-name">${svc.name}</span>
+                            <span class="service-duration">${svc.duration}分钟</span>
+                        </div>
+                        <div class="service-actions">
+                            <button class="action-btn" onclick="moveService(${index}, -1)" title="上移" ${index===0 ? 'disabled style="opacity:0.3"' : ''}>⬆</button>
+                            <button class="action-btn" onclick="moveService(${index}, 1)" title="下移" ${index===services.length-1 ? 'disabled style="opacity:0.3"' : ''}>⬇</button>
+                            <button class="action-btn" onclick="startEditService('${svc.id}')" title="编辑">✎</button>
+                            <button class="action-btn" onclick="deleteService(${index})" title="删除" style="color:#F44336">🗑</button>
+                        </div>
+                    `;
+                }
+                list.appendChild(item);
+            });
+        }
+
+        function addService() {
+            const name = document.getElementById('newServiceName').value.trim();
+            const duration = parseInt(document.getElementById('newServiceDuration').value);
+
+            if (!name || !duration) {
+                showToast('请输入有效的项目名称和时长');
+                return;
+            }
+
+            services.push({
+                id: Date.now().toString(),
+                name,
+                duration
+            });
+            saveServices();
+            document.getElementById('newServiceName').value = '';
+            document.getElementById('newServiceDuration').value = '';
+            renderServiceList();
+            renderServiceSelect();
+            showToast('项目已添加');
+        }
+
+        function deleteService(index) {
+            if (confirm('确定要删除这个项目吗？')) {
+                services.splice(index, 1);
+                saveServices();
+                renderServiceList();
+                renderServiceSelect();
+            }
+        }
+        
+        function moveService(index, direction) {
+            const newIndex = index + direction;
+            if (newIndex < 0 || newIndex >= services.length) return;
+            
+            // Swap
+            [services[index], services[newIndex]] = [services[newIndex], services[index]];
+            saveServices();
+            renderServiceList();
+            renderServiceSelect();
+        }
+        
+        function startEditService(id) {
+            editingServiceId = id;
+            renderServiceList();
+        }
+        
+        function cancelServiceEdit() {
+            editingServiceId = null;
+            renderServiceList();
+        }
+        
+        function saveServiceEdit(id, index) {
+            const newName = document.getElementById(`editName-${id}`).value.trim();
+            const newDuration = parseInt(document.getElementById(`editDuration-${id}`).value);
+            
+            if (newName && newDuration) {
+                services[index].name = newName;
+                services[index].duration = newDuration;
+                saveServices();
+                editingServiceId = null;
+                renderServiceList();
+                renderServiceSelect();
+                showToast('修改已保存');
+            }
+        }
+
+        // --- View & Actions ---
+        function openViewModal(appt) {
+            const content = document.getElementById('apptDetailsContent');
+            const actions = document.getElementById('apptActions');
+            
+            content.innerHTML = `
+                <div style="margin-bottom: 12px; font-size: 16px;">
+                    <strong>客户:</strong> ${appt.customerName} 
+                    <span style="color:#666; font-size: 14px;">(${appt.customerPhone})</span>
+                </div>
+                <div style="margin-bottom: 12px; background: #f9f9f9; padding: 10px; border-radius: 8px;">
+                    <div><strong>项目:</strong> ${appt.service}</div>
+                    <div style="margin-top:4px;"><strong>时间:</strong> ${appt.date} <br> ${appt.startTime} - ${appt.endTime} (${appt.duration}分钟)</div>
+                </div>
+                <div style="margin-bottom: 10px;"><strong>状态:</strong> <span style="color:var(--primary-btn); font-weight:bold;">${getStatusText(appt.status)}</span></div>
+            `;
+
+            let buttons = '';
+            if (appt.status === 'pending') {
+                buttons += `<button class="btn btn-start" onclick="updateStatus('${appt.id}', 'started')">开始服务</button>`;
+                buttons += `<button class="btn" style="background-color: #FF9800; color: white; margin-top: 10px;" onclick="manualPlayReminder('${appt.id}')">🔊 语音提醒</button>`;
+                buttons += `<button class="btn btn-danger" onclick="deleteAppt('${appt.id}')">取消预约</button>`;
+            } else if (appt.status === 'started') {
+                buttons += `<button class="btn btn-end" onclick="updateStatus('${appt.id}', 'completed')">结束服务</button>`;
+            } else {
+                buttons += `<button class="btn btn-danger" onclick="deleteAppt('${appt.id}')">删除记录</button>`;
+            }
+            
+            actions.innerHTML = buttons;
+            viewModal.style.display = 'flex';
+        }
+
+        function updateStatus(id, status) {
+            const idx = appointments.findIndex(a => a.id === id);
+            if (idx !== -1) {
+                appointments[idx].status = status;
+                saveAppointments();
+                closeModal('viewModal');
+                renderTimeline();
+                showToast(status === 'started' ? '服务已开始' : '服务已完成');
+            }
+        }
+        
+        function deleteAppt(id) {
+            if(confirm('确定要取消/删除这个预约吗？')) {
+                appointments = appointments.filter(a => a.id !== id);
+                saveAppointments();
+                closeModal('viewModal');
+                renderTimeline();
+                showToast('预约已删除');
+            }
+        }
+
+        // --- Helpers ---
+        function getStatusText(status) {
+            const map = {
+                'pending': '等待中',
+                'started': '服务中',
+                'completed': '已完成'
+            };
+            return map[status] || status;
+        }
+
+        function formatDateString(date) {
+            const y = date.getFullYear();
+            const m = (date.getMonth() + 1).toString().padStart(2, '0');
+            const d = date.getDate().toString().padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+        
+        function isSameDay(d1, d2) {
+            return d1.getFullYear() === d2.getFullYear() &&
+                   d1.getMonth() === d2.getMonth() &&
+                   d1.getDate() === d2.getDate();
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // --- Settings Logic ---
+        const settingsModal = document.getElementById('settingsModal');
+
+        function openSettingsModal() {
+            document.getElementById('reminderEnabled').checked = settings.reminderEnabled;
+            document.getElementById('reminderMinutes').value = settings.reminderMinutes;
+            settingsModal.style.display = 'flex';
+        }
+
+        function saveSettings() {
+            const enabled = document.getElementById('reminderEnabled').checked;
+            const minutes = parseInt(document.getElementById('reminderMinutes').value);
+            
+            if (isNaN(minutes) || minutes < 1) {
+                showToast('请输入有效的分钟数');
+                return;
+            }
+
+            settings.reminderEnabled = enabled;
+            settings.reminderMinutes = minutes;
+            localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+            
+            closeModal('settingsModal');
+            showToast('设置已保存');
+        }
+
+        function testVoice() {
+            const text = `这是一条语音提醒测试。客户张三的美甲服务即将开始，请做好准备。`;
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'zh-CN';
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function manualPlayReminder(id) {
+            const appt = appointments.find(a => a.id === id);
+            if (!appt) return;
+            
+            // Mark as reminded
+            appt.reminded = true; 
+            saveAppointments();
+
+            const text = `提醒：客户 ${appt.customerName} 预约的 ${appt.service} 将在 ${appt.startTime} 开始，请做好准备。`;
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'zh-CN';
+            window.speechSynthesis.speak(utterance);
+            showToast('正在播放语音提醒...');
+        }
+
+        function checkReminders() {
+            if (!settings.reminderEnabled) return;
+
+            const now = new Date();
+            const currentStr = formatDateString(now);
+            
+            appointments.forEach(appt => {
+                if (appt.status !== 'pending') return;
+                if (appt.date !== currentStr) return;
+                if (appt.reminded) return; // Already reminded
+                
+                const [h, m] = appt.startTime.split(':').map(Number);
+                
+                const apptTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
+                const diffMs = apptTime - now;
+                const diffMins = Math.floor(diffMs / 60000);
+                
+                // Visual Alert logic remains same, but maybe use setting too? 
+                // Let's keep visual alert range a bit wider or dynamic
+                const chip = document.querySelector(`.appt-card[data-id="${appt.id}"]`);
+                if (chip) {
+                    // Alert if within 15 mins OR within configured reminder time
+                    if (diffMins >= 0 && diffMins <= Math.max(15, settings.reminderMinutes)) {
+                        chip.classList.add('visual-alert');
+                    } else {
+                        chip.classList.remove('visual-alert');
+                    }
+                }
+
+                // Voice Reminder
+                // Check if we are within the reminder window (e.g. 0 to settings.reminderMinutes)
+                // Since we check every 30s, we should catch it.
+                // To be safe, if it's <= settings.reminderMinutes and > settings.reminderMinutes - 1 (approx)
+                // Or simply: if it's less than or equal to the reminder time AND hasn't been reminded.
+                // But we don't want to remind if it's already passed (negative).
+                
+                if (diffMins >= 0 && diffMins <= settings.reminderMinutes) {
+                    playReminder(appt);
+                }
+            });
+        }
+
+        function playReminder(appt) {
+            // Mark as reminded immediately to prevent double speak
+            appt.reminded = true;
+            saveAppointments(); // Persist the flag
+            
+            showToast(`即将开始: ${appt.customerName}`);
+            
+            try {
+                // "客户 [姓名] 的 [项目名称] 服务即将开始，请做好准备。"
+                const text = `客户 ${appt.customerName} 的 ${appt.service} 服务即将开始，请做好准备。`;
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'zh-CN';
+                window.speechSynthesis.speak(utterance);
+            } catch (e) {
+                console.error('Speech synthesis not supported');
+            }
+        }
+
+    </script>
+</body>
 </html>
